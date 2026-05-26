@@ -1,0 +1,6 @@
+@ReceiptScout.Api_HostAddress = http://localhost:5251
+
+GET {{ReceiptScout.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

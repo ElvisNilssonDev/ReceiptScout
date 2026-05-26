@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ReceiptScout.Api/ReceiptScout.Api.csproj" />
+    <Project Path="src/ReceiptScout.Application/ReceiptScout.Application.csproj" />
+    <Project Path="src/ReceiptScout.Domain/ReceiptScout.Domain.csproj" />
+    <Project Path="src/ReceiptScout.Infrastructure/ReceiptScout.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReceiptScout.Application.Tests/ReceiptScout.Application.Tests.csproj" />
+  </Folder>
+</Solution>

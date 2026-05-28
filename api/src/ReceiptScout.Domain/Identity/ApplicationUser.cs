@@ -8,7 +8,7 @@ namespace ReceiptScout.Domain.Identity
 {
     public class ApplicationUser : IdentityUser
     {
-        public ICollection<Receipt> Receipt { get; private set; } = new List<Receipt>();
+        public ICollection<Receipt> Receipts { get; private set; } = new List<Receipt>();
         public ICollection<ExpenseReport> ExpenseReports { get; private set; } = new List<ExpenseReport>();
     }
 }

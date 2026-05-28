@@ -1,4 +1,6 @@
-﻿namespace ReceiptScout.Domain.Entities;
+﻿using ReceiptScout.Domain.Identity;
+
+namespace ReceiptScout.Domain.Entities;
 
 public class Receipt
 {
@@ -52,8 +54,11 @@ public class Receipt
     public Guid? CategoryId { get; private set; }
     public Guid? ExpenseReportId { get; private set; }
 
-    // TODO Day 2: navigation properties once the other entities exist
-    // public ApplicationUser User { get; private set; } = null!;
-    // public Category? Category { get; private set; }
-    // public ExpenseReport? ExpenseReport { get; private set; }
+
+    // Navigation properties
+    public ApplicationUser User { get; private set; } = null!;
+    public Category? Category { get; private set; }
+    public ExpenseReport? ExpenseReport { get; private set; }
+
+
 }

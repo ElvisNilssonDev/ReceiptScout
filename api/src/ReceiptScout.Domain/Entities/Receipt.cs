@@ -60,5 +60,35 @@ public class Receipt
     public Category? Category { get; private set; }
     public ExpenseReport? ExpenseReport { get; private set; }
 
+    // --- State changes (all validate the same invariants as the constructor) ---
 
+    public void UpdateDetails(
+        string merchant,
+        DateTime date,
+        decimal totalAmount,
+        decimal vatAmount,
+        string? description,
+        string? imageUrl,
+        Guid? categoryId,
+        Guid? expenseReportId)
+    {
+        if (string.IsNullOrWhiteSpace(merchant))
+            throw new ArgumentException("Merchant is required.", nameof(merchant));
+        if (totalAmount <= 0)
+            throw new ArgumentException("Total amount must be greater than zero.", nameof(totalAmount));
+        if (vatAmount < 0)
+            throw new ArgumentException("VAT amount cannot be negative.", nameof(vatAmount));
+
+        Merchant = merchant;
+        Date = date;
+        TotalAmount = totalAmount;
+        VatAmount = vatAmount;
+        Description = description;
+        ImageUrl = imageUrl;
+        CategoryId = categoryId;
+        ExpenseReportId = expenseReportId;
+    }
+
+    public void AssignCategory(Guid? categoryId) => CategoryId = categoryId;
+    public void AssignToReport(Guid? expenseReportId) => ExpenseReportId = expenseReportId;
 }

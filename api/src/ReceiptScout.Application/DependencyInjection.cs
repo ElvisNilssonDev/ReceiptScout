@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using ReceiptScout.Application.Receipts;
 
 namespace ReceiptScout.Application;
 
@@ -10,7 +11,8 @@ public static class DependencyInjection
     {
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
-        // Application services registreras här när vi bygger dem (Day 4–5)
+        services.AddScoped<IReceiptService, ReceiptService>();
+        // Fler services registreras här (CategoryService, ExpenseReportService, AuthService — Day 5)
 
         return services;
     }

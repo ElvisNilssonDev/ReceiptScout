@@ -43,4 +43,17 @@ public class Category
 
         return slug.Trim('-');
     }
+
+    public void UpdateDetails(string name, string basAccount, decimal vatRate)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name is required.", nameof(name));
+        if (string.IsNullOrWhiteSpace(basAccount))
+            throw new ArgumentException("BAS account is required.", nameof(basAccount));
+
+        Name = name;
+        Slug = GenerateSlug(name);
+        BasAccount = basAccount;
+        VatRate = vatRate;
+    }
 }

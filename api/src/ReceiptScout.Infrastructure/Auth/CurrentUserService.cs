@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using ReceiptScout.Application.Common.Interfaces;
 
@@ -13,9 +14,15 @@ public class CurrentUserService : ICurrentUserService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public string? UserId =>
-        _httpContextAccessor.HttpContext?.User?
-            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    public string? UserId
+    {
+        get
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            return user?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? user?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        }
+    }
 
     public bool IsAdmin =>
         _httpContextAccessor.HttpContext?.User?.IsInRole("Admin") ?? false;

@@ -65,4 +65,14 @@ public class ExpenseReport
         Status = ExpenseReportStatus.Rejected;
         ApprovedByAdminId = adminId;
     }
+
+    public void UpdateTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Title is required.", nameof(title));
+        if (Status != ExpenseReportStatus.Draft)
+            throw new InvalidOperationException("Only draft reports can be edited.");
+
+        Title = title;
+    }
 }

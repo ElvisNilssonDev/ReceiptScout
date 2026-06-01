@@ -1,7 +1,8 @@
-﻿using System.Reflection;
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using ReceiptScout.Application.Categories;
 using ReceiptScout.Application.Receipts;
+using System.Reflection;
 
 namespace ReceiptScout.Application;
 
@@ -12,7 +13,7 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
         services.AddScoped<IReceiptService, ReceiptService>();
-        // Fler services registreras här (CategoryService, ExpenseReportService, AuthService — Day 5)
+        services.AddScoped<ICategoryService, CategoryService>();
 
         return services;
     }

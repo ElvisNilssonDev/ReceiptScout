@@ -25,9 +25,9 @@ public static class DependencyInjection
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IExpenseReportRepository, ExpenseReportRepository>();
 
-        services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+        services.AddIdentityCore<ApplicationUser>(options =>
         {
-            options.Password.RequiredLength = 12;
+            options.Password.RequiredLength = 6;
             options.Password.RequireDigit = true;
             options.Password.RequireUppercase = true;
             options.Password.RequireLowercase = true;
@@ -36,8 +36,9 @@ public static class DependencyInjection
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             options.User.RequireUniqueEmail = true;
         })
-           .AddEntityFrameworkStores<AppDbContext>()
-           .AddDefaultTokenProviders();
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders();
 
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.AddScoped<IIdentityService, IdentityService>();

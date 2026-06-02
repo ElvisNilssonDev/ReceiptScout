@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ReceiptScout.Application.Auth;
 using ReceiptScout.Application.Auth.Dtos;
 
@@ -6,6 +7,7 @@ namespace ReceiptScout.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _auth;

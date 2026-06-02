@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using ReceiptScout.Api.Common;
 using ReceiptScout.Application;
 using ReceiptScout.Infrastructure;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
@@ -42,7 +44,23 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("auth", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+    });
+});
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -68,11 +86,36 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("frontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Vite dev server
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 
+app.UseExceptionHandler();
+
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
+if (app.Environment.IsProduction())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
+
+app.UseCors("frontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseRateLimiter();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>

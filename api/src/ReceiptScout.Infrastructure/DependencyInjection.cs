@@ -2,8 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ReceiptScout.Application.Ai;
 using ReceiptScout.Application.Common.Interfaces;
 using ReceiptScout.Domain.Identity;
+using ReceiptScout.Infrastructure.Ai;
 using ReceiptScout.Infrastructure.Auth;
 using ReceiptScout.Infrastructure.Persistence;
 using ReceiptScout.Infrastructure.Persistence.Repositories;
@@ -44,6 +46,9 @@ public static class DependencyInjection
         services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+        //Ai
+        services.AddScoped<IAiCategorizationService, StubAiCategorizationService>();
 
         // Current user
         services.AddHttpContextAccessor();

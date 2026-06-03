@@ -1,13 +1,16 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ReceiptScout.Api.Common;
 using ReceiptScout.Application;
 using ReceiptScout.Infrastructure;
+using ReceiptScout.Infrastructure.Persistence;
+using ReceiptScout.Infrastructure.Persistence.Seeding;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Text;
-using ReceiptScout.Infrastructure.Persistence.Seeding;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +52,9 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddEndpointsApiExplorer();
+
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("database");
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -128,6 +134,28 @@ app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "ReceiptScout v1");
+});
+
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            durationMs = report.TotalDuration.TotalMilliseconds,
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description
+            })
+        });
+
+        await context.Response.WriteAsync(payload);
+    }
 });
 
 app.MapControllers();

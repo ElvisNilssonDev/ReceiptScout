@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using ReceiptScout.Application.Ai;
 using ReceiptScout.Application.Auth;
 using ReceiptScout.Application.Categories;
 using ReceiptScout.Application.ExpenseReports;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<IExpenseReportService, ExpenseReportService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IReceiptCategorizationService, ReceiptCategorizationService>();
 
         return services;
     }

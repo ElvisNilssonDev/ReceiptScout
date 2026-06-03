@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ReceiptScout.Application.Ai;
+using ReceiptScout.Application.Ai.Dtos;
 using ReceiptScout.Application.Receipts;
 using ReceiptScout.Application.Receipts.Dtos;
 
@@ -11,8 +13,13 @@ namespace ReceiptScout.Api.Controllers;
 public class ReceiptsController : ControllerBase
 {
     private readonly IReceiptService _service;
+    private readonly IReceiptCategorizationService _categorization;
 
-    public ReceiptsController(IReceiptService service) => _service = service;
+    public ReceiptsController(IReceiptService service, IReceiptCategorizationService categorization)
+    {
+        _service = service;
+        _categorization = categorization;
+    }
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ReceiptResponse>>> GetAll()
@@ -39,4 +46,8 @@ public class ReceiptsController : ControllerBase
         await _service.DeleteAsync(id);
         return NoContent();
     }
+
+    [HttpPost("{id:guid}/suggest-category")]
+    public async Task<ActionResult<CategorySuggestion>> SuggestCategory(Guid id)
+        => Ok(await _categorization.SuggestForReceiptAsync(id));
 }

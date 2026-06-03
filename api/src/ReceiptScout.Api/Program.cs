@@ -7,6 +7,7 @@ using ReceiptScout.Application;
 using ReceiptScout.Infrastructure;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
 using System.Text;
+using ReceiptScout.Infrastructure.Persistence.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -98,6 +99,12 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var seeder = scope.ServiceProvider.GetRequiredService<ApplicationDbSeeder>();
+    await seeder.SeedAsync();
+}
 
 app.UseExceptionHandler();
 

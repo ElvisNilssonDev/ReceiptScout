@@ -7,6 +7,7 @@ using ReceiptScout.Domain.Identity;
 using ReceiptScout.Infrastructure.Auth;
 using ReceiptScout.Infrastructure.Persistence;
 using ReceiptScout.Infrastructure.Persistence.Repositories;
+using ReceiptScout.Infrastructure.Persistence.Seeding;
 
 namespace ReceiptScout.Infrastructure;
 
@@ -47,6 +48,7 @@ public static class DependencyInjection
         // Current user
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<ApplicationDbSeeder>();
 
         return services;
     }

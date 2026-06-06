@@ -13,24 +13,29 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export function LoginPage() {
-  const { login } = useAuth();
+export function RegisterPage() {
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (password !== confirm) {
+      setError("Lösenorden matchar inte.");
+      return;
+    }
     setLoading(true);
     try {
-      await login({ email, password });
+      await register({ email, password });
       navigate("/");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Inloggningen misslyckades.");
+      setError(err instanceof ApiError ? err.message : "Registreringen misslyckades.");
     } finally {
       setLoading(false);
     }
@@ -40,7 +45,7 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Logga in</CardTitle>
+          <CardTitle className="text-2xl">Skapa konto</CardTitle>
           <CardDescription>ReceiptScout</CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,19 +68,33 @@ export function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="new-password"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Minst 6 tecken, med versal, gemen, siffra och specialtecken.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm">Bekräfta lösenord</Label>
+              <Input
+                id="confirm"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                autoComplete="new-password"
                 required
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loggar in…" : "Logga in"}
+              {loading ? "Skapar konto…" : "Skapa konto"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            Inget konto?{" "}
-            <Link to="/register" className="font-medium text-primary hover:underline">
-              Registrera dig
+            Har du redan ett konto?{" "}
+            <Link to="/login" className="font-medium text-primary hover:underline">
+              Logga in
             </Link>
           </p>
         </CardContent>

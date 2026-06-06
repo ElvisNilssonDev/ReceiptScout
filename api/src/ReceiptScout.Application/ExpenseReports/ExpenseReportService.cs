@@ -37,7 +37,12 @@ public class ExpenseReportService : IExpenseReportService
     public async Task<IReadOnlyList<ExpenseReportResponse>> GetAllForCurrentUserAsync()
     {
         var userId = RequireUserId();
-        var reports = await _repository.GetByUserIdAsync(userId);
+
+        // Admin ser alla rapporter (godkännandekön); vanliga användare ser bara sina egna.
+        var reports = _currentUser.IsAdmin
+            ? await _repository.GetAllAsync()
+            : await _repository.GetByUserIdAsync(userId);
+
         return reports.Select(Map).ToList();
     }
 

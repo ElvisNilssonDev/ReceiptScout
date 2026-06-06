@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ReceiptScout.Application.ExpenseReports;
 using ReceiptScout.Application.ExpenseReports.Dtos;
+using ReceiptScout.Application.Receipts.Dtos;
 
 namespace ReceiptScout.Api.Controllers;
 
@@ -21,6 +22,10 @@ public class ExpenseReportsController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ExpenseReportResponse>> GetById(Guid id)
         => Ok(await _service.GetByIdAsync(id));
+
+    [HttpGet("{id:guid}/receipts")]
+    public async Task<ActionResult<IReadOnlyList<ReceiptResponse>>> GetReceipts(Guid id)
+        => Ok(await _service.GetReceiptsAsync(id));
 
     [HttpPost]
     public async Task<ActionResult<ExpenseReportResponse>> Create(CreateExpenseReportDto dto)

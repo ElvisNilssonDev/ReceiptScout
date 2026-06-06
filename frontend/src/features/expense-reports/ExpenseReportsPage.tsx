@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Plus, Pencil, Trash2, Send, Check, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useExpenseReports } from "@/features/expense-reports/useExpenseReports";
+import { useCategories } from "@/features/categories/useCategories";
 import { expenseReportsApi } from "@/features/expense-reports/api";
 import { ExpenseReportFormDialog } from "@/features/expense-reports/ExpenseReportFormDialog";
+import { ReportDetailDialog } from "@/features/expense-reports/ReportDetailDialog";
 import { StatusBadge } from "@/features/expense-reports/StatusBadge";
 import { ApiError } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -32,10 +34,12 @@ import {
 export function ExpenseReportsPage() {
   const { isAdmin } = useAuth();
   const { reports, loading, error, refetch } = useExpenseReports();
+  const { categories } = useCategories();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ExpenseReportResponse | null>(null);
   const [deleting, setDeleting] = useState<ExpenseReportResponse | null>(null);
+  const [viewing, setViewing] = useState<ExpenseReportResponse | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   function openCreate() {
@@ -107,7 +111,14 @@ export function ExpenseReportsPage() {
                 const isSubmitted = r.status === ExpenseReportStatus.Submitted;
                 return (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.title}</TableCell>
+                    <TableCell className="font-medium">
+                      <button
+                        onClick={() => setViewing(r)}
+                        className="text-left transition-colors hover:text-primary hover:underline"
+                      >
+                        {r.title}
+                      </button>
+                    </TableCell>
                     <TableCell><StatusBadge status={r.status} /></TableCell>
                     <TableCell className="tabular">{formatDate(r.createdAt)}</TableCell>
                     <TableCell className="tabular text-muted-foreground">
@@ -167,6 +178,13 @@ export function ExpenseReportsPage() {
         onOpenChange={setDialogOpen}
         report={editing}
         onSaved={refetch}
+      />
+
+      <ReportDetailDialog
+        open={viewing !== null}
+        onOpenChange={(o) => !o && setViewing(null)}
+        report={viewing}
+        categories={categories}
       />
 
       <AlertDialog open={deleting !== null} onOpenChange={(o) => !o && setDeleting(null)}>

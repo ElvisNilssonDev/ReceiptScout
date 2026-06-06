@@ -3,6 +3,7 @@ import type {
   ExpenseReportResponse,
   CreateExpenseReportDto,
   UpdateExpenseReportDto,
+  ReceiptResponse,
 } from "@/lib/types";
 
 export const expenseReportsApi = {
@@ -18,4 +19,6 @@ export const expenseReportsApi = {
     api.post<ExpenseReportResponse>(`/api/ExpenseReports/${id}/approve`),
   reject: (id: string) =>
     api.post<ExpenseReportResponse>(`/api/ExpenseReports/${id}/reject`),
+  receipts: (id: string) =>
+    api.get<ReceiptResponse[]>(`/api/ExpenseReports/${id}/receipts`),
 };

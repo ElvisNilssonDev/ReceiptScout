@@ -38,7 +38,7 @@ public class ExpenseReportService : IExpenseReportService
     {
         var userId = RequireUserId();
 
-        // Admin ser alla rapporter (godkännandekön); vanliga användare ser bara sina egna.
+        // Admin ser alla rapporter (godkännandekön); vanliga användare ser bara sina egna.//
         var reports = _currentUser.IsAdmin
             ? await _repository.GetAllAsync()
             : await _repository.GetByUserIdAsync(userId);

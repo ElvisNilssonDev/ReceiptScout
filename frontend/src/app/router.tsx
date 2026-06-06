@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createHashRouter } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/features/auth/LoginPage";
@@ -8,7 +8,7 @@ import { ReceiptsPage } from "@/features/receipts/ReceiptsPage";
 import { CategoriesPage } from "@/features/categories/CategoriesPage";
 import { ExpenseReportsPage } from "@/features/expense-reports/ExpenseReportsPage";
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
   {

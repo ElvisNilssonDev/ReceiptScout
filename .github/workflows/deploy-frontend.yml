@@ -2,7 +2,7 @@ name: Deploy frontend to Pages
 
 on:
   push:
-    branches: [ "DIN_DEFAULT_BRANCH" ]   # <-- byt till din default-branch
+    branches: [ "master" ]   # <-- byt till din default-branch
     paths:
       - "frontend/**"
       - ".github/workflows/deploy-frontend.yml"

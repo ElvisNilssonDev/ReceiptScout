@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IReceiptRepository, ReceiptRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IExpenseReportRepository, ExpenseReportRepository>();
+        services.AddScoped<ApplicationDbSeeder>();
 
         services.AddIdentityCore<ApplicationUser>(options =>
         {

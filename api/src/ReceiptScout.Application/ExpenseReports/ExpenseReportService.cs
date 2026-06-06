@@ -1,6 +1,7 @@
 ﻿using ReceiptScout.Application.Common.Exceptions;
 using ReceiptScout.Application.Common.Interfaces;
 using ReceiptScout.Application.ExpenseReports.Dtos;
+using ReceiptScout.Application.Receipts.Dtos;
 using ReceiptScout.Domain.Entities;
 using ReceiptScout.Domain.Exceptions;
 
@@ -44,6 +45,16 @@ public class ExpenseReportService : IExpenseReportService
             : await _repository.GetByUserIdAsync(userId);
 
         return reports.Select(Map).ToList();
+    }
+
+    public async Task<IReadOnlyList<ReceiptResponse>> GetReceiptsAsync(Guid id)
+    {
+        var report = await _repository.GetByIdWithReceiptsAsync(id)
+            ?? throw new NotFoundException(nameof(ExpenseReport), id);
+
+        EnsureOwnerOrAdmin(report);
+
+        return report.Receipts.Select(MapReceipt).ToList();
     }
 
     public async Task<ExpenseReportResponse> UpdateAsync(Guid id, UpdateExpenseReportDto dto)
@@ -121,4 +132,8 @@ public class ExpenseReportService : IExpenseReportService
 
     private static ExpenseReportResponse Map(ExpenseReport r) => new(
         r.Id, r.Title, r.Status, r.UserId, r.ApprovedByAdminId, r.CreatedAt, r.SubmittedAt);
+
+    private static ReceiptResponse MapReceipt(Receipt r) => new(
+        r.Id, r.Merchant, r.Date, r.TotalAmount, r.VatAmount,
+        r.Description, r.ImageUrl, r.UserId, r.CategoryId, r.ExpenseReportId, r.CreatedAt);
 }

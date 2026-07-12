@@ -1,129 +1,270 @@
 # ReceiptScout
 
-> A receipt-tracking API with AI-assisted BAS account suggestion for Swedish small businesses.
+> A receipt-tracking and expense-report API with AI-assisted BAS-account categorization, built for Swedish small businesses — with a React front end.
+
+[![CI](https://github.com/ElvisNilssonDev/ReceiptScout/actions/workflows/ci.yml/badge.svg)](https://github.com/ElvisNilssonDev/ReceiptScout/actions/workflows/ci.yml)
+[![Deploy frontend](https://github.com/ElvisNilssonDev/ReceiptScout/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/ElvisNilssonDev/ReceiptScout/actions/workflows/deploy-frontend.yml)
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-14-239120?logo=csharp&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)
+![EF Core](https://img.shields.io/badge/EF%20Core-10-512BD4)
+![SQL Server](https://img.shields.io/badge/SQL%20Server-Express-CC2927?logo=microsoftsqlserver&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-xUnit%20%C2%B7%20NSubstitute-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+**🔗 Live demo:** https://elvisnilssondev.github.io/ReceiptScout/
+
+> The deployed front end is hosted on GitHub Pages. The UI renders fully; sign-in and CRUD require a running API (the demo points at a local API by default — see [Running locally](#running-locally)).
+
+---
 
 ## About
 
-Small business owners in Sweden spend hours sorting receipts at year-end, mapping each one to the correct **BAS account** (the Swedish chart of accounts). ReceiptScout is a backend API with a planned React frontend that lets users register receipts, get AI-suggested categorization against the BAS standard, and bundle them into expense reports for approval.
+ReceiptScout lets a small business register receipts, group them into expense reports, and route those reports through an approval flow. Each receipt can be mapped to a **BAS account** (the Swedish standardized chart of accounts), and an **AI categorization seam** suggests the most likely account for a given receipt.
 
-Built as a portfolio project demonstrating Clean Architecture, secure-by-default API design, and a swappable AI provider interface for GDPR-sensitive deployments.
+It was built as a full-stack assignment: a layered .NET Web API with a separate xUnit test project, plus a React front end, in a single monorepo.
+
+The application UI is in **Swedish**; the codebase and this document are in English.
+
+---
+
+## Features
+
+**Authentication & roles**
+- Register / login with JWT bearer tokens (ASP.NET Core Identity)
+- Two roles — `Admin` and `User` — with role-gated UI and server-side authorization
+- Login/register endpoints are rate-limited
+
+**Receipts**
+- Full CRUD, scoped to the signed-in user
+- Assign each receipt to a category and an expense report via dropdowns (no GUID juggling)
+- **"Suggest category"** button → AI seam returns a BAS account + confidence + rationale
+
+**Categories (BAS accounts)**
+- Full CRUD (admin-managed), seeded with 12 standard BAS expense accounts
+- VAT rate per category (25 % / 12 % / 6 % / 0 %)
+
+**Expense reports**
+- Full CRUD plus a status state machine: **Draft → Submitted → Approved / Rejected**
+- Owners submit; admins approve/reject; admins see every report (approval queue)
+- Open a report to see its receipts and totals (sum + VAT)
+
+**Platform**
+- Dashboard with live metrics (receipt count, totals, VAT, pending reports)
+- Global exception handling (RFC 7807 problem details), security headers, CORS
+- `/health` endpoint with an EF Core database check
+- Swagger UI for exploring the API
+
+---
+
+## Tech stack
+
+| Area        | Technologies |
+|-------------|--------------|
+| **Backend** | C# 14 · .NET 10 · ASP.NET Core Web API · EF Core 10 · SQL Server Express · ASP.NET Core Identity · JWT Bearer · FluentValidation · Swashbuckle (Swagger) · Health Checks · Rate Limiting |
+| **Frontend**| React 19 · TypeScript · Vite · Tailwind CSS v4 · shadcn/ui · React Router (HashRouter) · lucide-react |
+| **Testing** | xUnit · NSubstitute · Shouldly |
+| **DevOps**  | GitHub Actions (CI build + test, CD deploy) · GitHub Pages |
+
+---
 
 ## Architecture
 
-Four-layer **Clean Architecture** with the dependency rule enforced via project references:
+ReceiptScout follows **Clean Architecture** with four backend projects and a separate test project. Dependencies point inward toward the Domain.
+
+```mermaid
+flowchart LR
+    API[API Layer<br/>Controllers · Middleware · DI]
+    APP[Application Layer<br/>Services · DTOs · Interfaces]
+    DOM[Domain Layer<br/>Entities · Business rules]
+    INF[Infrastructure Layer<br/>EF Core · Repositories · Identity · AI]
+
+    API --> APP
+    API --> INF
+    INF --> APP
+    INF --> DOM
+    APP --> DOM
+```
+
+- **Domain** — entities and business rules (e.g. the expense-report state machine lives in the entity, not a service).
+- **Application** — service interfaces + implementations, DTOs, and the AI categorization seam. No infrastructure dependencies.
+- **Infrastructure** — EF Core `DbContext`, the **generic repository** + concrete repositories, Identity, JWT, and the AI provider implementation.
+- **API** — controllers (depending on service **interfaces** via DI), middleware, and composition root.
+
+Controllers depend on interfaces only; all services and repositories are registered via interfaces in the DI container. **CQRS/MediatR is intentionally not used** — the request path is `Controller → Service (interface) → Repository (interface) → EF Core`.
+
+### AI categorization seam
+
+`IAiCategorizationService` is a provider seam. The current implementation (`StubAiCategorizationService`) does naive keyword matching; swapping in a real LLM (e.g. Gemini) is a single DI line with no controller or front-end changes. The request is *grounded* — the AI only chooses from categories that actually exist.
+
+---
+
+## Domain model
+
+Three core entities with one-to-many relationships:
+
+- **Category** — a BAS account (`name`, `basAccount`, `vatRate`)
+- **Receipt** — `merchant`, `date`, `totalAmount`, `vatAmount`, optional `category` and `expenseReport`
+- **ExpenseReport** — `title`, `status`, owner, optional approving admin; holds many receipts
 
 ```
-Domain          ← Entities, enums, exceptions. No outward dependencies.
-Application     ← Services, interfaces, DTOs, validators. Depends only on Domain.
-Infrastructure  ← EF Core, Identity, JWT, AI provider. Implements Application interfaces.
-Api             ← Controllers, middleware, composition root.
+Category   1 ──── *  Receipt  * ──── 1   ExpenseReport
 ```
 
-Business invariants live in **rich domain entities** — invalid states are unrepresentable. A `Receipt` with a negative amount or an `ExpenseReport` approved while still in `Draft` cannot be constructed.
+Expense-report status flow:
 
-The AI categorization service is abstracted behind `IAiCategorizationService` in the Application layer, so the provider can be swapped without touching domain or application code. Today a keyword-based stub implements the interface; the real Google Gemini client is planned, with a local LLM such as Ollama as a future option for handling sensitive customer data under GDPR. Switching providers is a single DI registration change.
+```mermaid
+stateDiagram-v2
+    [*] --> Draft: create
+    Draft --> Submitted: submit (owner)
+    Submitted --> Approved: approve (admin)
+    Submitted --> Rejected: reject (admin)
+```
 
-## Tech Stack
+Title is editable only while in `Draft`; transitions are enforced in the domain entity.
 
-| Layer | Tech |
-|---|---|
-| Runtime | .NET 10 |
-| API | ASP.NET Core Web API (controllers + services) |
-| Persistence | Entity Framework Core 10, SQL Server Express, code-first migrations |
-| Auth | ASP.NET Core Identity (`AddIdentityCore` + roles), JWT bearer access tokens |
-| Validation | FluentValidation (+ SharpGrip auto-validation) |
-| API documentation | Swagger UI (Swashbuckle.AspNetCore) at `/swagger` |
-| Health | ASP.NET Core health checks with EF Core DB probe at `/health` |
-| Testing | xUnit, NSubstitute, Shouldly (13 tests) |
-| AI | Provider behind `IAiCategorizationService` — stub today, Google Gemini planned |
-| Frontend | React + Vite *(planned)* |
+---
 
-## Key Design Decisions
+## API endpoints
 
-- **Rich domain model.** Entities validate their own invariants in the constructor; state changes go through methods like `ExpenseReport.Submit()` and `ExpenseReport.Approve(adminId)` that enforce the state machine. Business rules cannot be bypassed regardless of how an entity is created.
+All endpoints require a JWT unless noted. Base path: `/api`.
 
-- **Defense in depth.** `FluentValidation` catches bad input early with user-friendly error responses (`ProblemDetails`, RFC 7807). Domain constructors are the last line of defense — even if validation is bypassed or buggy, the domain protects itself.
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/Auth/register` | Public · rate-limited | Register, returns JWT |
+| POST | `/Auth/login` | Public · rate-limited | Login, returns JWT |
+| GET | `/Categories` | User | List categories |
+| POST | `/Categories` | Admin | Create category |
+| PUT | `/Categories/{id}` | Admin | Update category |
+| DELETE | `/Categories/{id}` | Admin | Delete category |
+| GET | `/Receipts` | User | List own receipts |
+| GET | `/Receipts/{id}` | User | Get a receipt |
+| POST | `/Receipts` | User | Create receipt |
+| PUT | `/Receipts/{id}` | User | Update receipt |
+| DELETE | `/Receipts/{id}` | User | Delete receipt |
+| POST | `/Receipts/{id}/suggest-category` | User | AI category suggestion |
+| GET | `/ExpenseReports` | User (own) / Admin (all) | List reports |
+| GET | `/ExpenseReports/{id}` | Owner/Admin | Get a report |
+| POST | `/ExpenseReports` | User | Create report |
+| PUT | `/ExpenseReports/{id}` | Owner/Admin | Update title (Draft only) |
+| DELETE | `/ExpenseReports/{id}` | Owner/Admin | Delete report |
+| POST | `/ExpenseReports/{id}/submit` | Owner | Draft → Submitted |
+| POST | `/ExpenseReports/{id}/approve` | Admin | Submitted → Approved |
+| POST | `/ExpenseReports/{id}/reject` | Admin | Submitted → Rejected |
+| GET | `/ExpenseReports/{id}/receipts` | Owner/Admin | Receipts in a report |
+| GET | `/health` | Public | Health + DB check |
 
-- **State enforcement in the entity, authorization in the service.** `ExpenseReport.Approve()` enforces *"is this state transition legal?"*; the service layer enforces *"does this user have permission?"* via owner-or-admin checks against the current user. Two distinct kinds of "can I do this?" kept cleanly separate.
+Interactive docs: run the API and open **`/swagger`**.
 
-- **Cascade-aware FK strategy.** User-owned financial records use `Restrict` on delete to avoid accidental data loss. Optional relationships (`Category`, `ExpenseReport` on `Receipt`) use `SetNull`. The double FK from `ExpenseReport` to `ApplicationUser` (owner + approver) is configured to avoid SQL Server's multiple-cascade-path error.
+---
 
-- **Swappable AI provider.** The Application layer depends only on `IAiCategorizationService`. The request is grounded with the user's existing categories so the model is constrained to known BAS accounts. The implementation lives in Infrastructure behind a single DI registration — swapping the stub for Gemini changes one line.
-
-- **AI-ready, idempotent seeding.** On startup the app applies pending migrations and seeds the Admin/User roles, a bootstrap admin account, and the standard Swedish BAS expense categories — only inserting what is missing, so it is safe to run on every boot in every environment.
-
-- **Generic + specific repositories.** Generic repository removes CRUD duplication; specific repositories add typed queries with `Include()` that the generic cannot express cleanly.
-
-## Security
-
-Defense-in-depth applied throughout:
-
-- ASP.NET Core Identity with password policy (length + complexity) and account lockout
-- Short-lived JWT access tokens (15 min)
-- Rate limiting on `/api/Auth/*` endpoints (fixed window, 5 requests/min)
-- Owner-or-admin authorization enforced in the service layer; admin-only endpoints for category management and report approval
-- DTOs prevent mass-assignment / overposting
-- Global exception handler returns `ProblemDetails` without leaking stack traces
-- Security headers middleware (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
-- HTTPS redirection + HSTS in production
-- Secrets in `dotnet user-secrets` (dev) and environment variables (prod) — never in `appsettings.json`
-
-## Status
-
-🚧 **In active development.**
-
-- ✅ Domain layer (entities, invariants, state machine, tests)
-- ✅ Persistence (DbContext, configurations, cascade strategy, migrations)
-- ✅ Repositories, current user service, layered DI
-- ✅ Application services, DTOs, FluentValidation
-- ✅ Controllers, JWT authentication, role-based authorization
-- ✅ Security hardening (rate limiting, headers, global exception handler, CORS, HSTS)
-- ✅ Startup seeding (admin + BAS categories) and `/health` endpoint
-- ✅ AI categorization seam (`IAiCategorizationService`) with stub provider + endpoint
-- ⬜ Google Gemini implementation of the AI seam
-- ⬜ React frontend
-- ⬜ CI/CD and deployment (GitHub Actions → Railway)
-
-**Planned / not yet implemented:** refresh tokens, Gemini integration, frontend, CI/CD.
-
-## Getting Started
+## Running locally
 
 ### Prerequisites
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Node.js 20+](https://nodejs.org/)
+- SQL Server Express (or adjust the connection string)
 
-- .NET 10 SDK
-- SQL Server Express (or LocalDB) — the default connection string targets `.\SQLEXPRESS`
-
-### Setup
-
-All commands run from the `api/` folder.
+### Backend
 
 ```bash
-# 1. Set the JWT signing key (dev secret, never committed)
-dotnet user-secrets set "Jwt:Key" "<a-long-random-secret-at-least-32-chars>" --project src/ReceiptScout.Api
-
-# 2. Run the API — migrations are applied and the database is seeded automatically
-dotnet run --project src/ReceiptScout.Api
+# from the repo root
+dotnet run --project api/src/ReceiptScout.Api
 ```
 
-Swagger UI opens at `https://localhost:7161/swagger`. The health endpoint is at `https://localhost:7161/health`.
+On startup the app applies EF Core migrations and **seeds** the database (roles, an admin user, and the 12 BAS categories) automatically. The API runs on `https://localhost:7161` with Swagger at `/swagger`.
 
-### Seeded admin
+Connection string (in `api/src/ReceiptScout.Api/appsettings.json`):
 
-On first run a bootstrap admin is created so you can log in immediately — no manual role assignment needed:
+```
+Server=.\SQLEXPRESS;Database=ReceiptScout;Trusted_Connection=True;TrustServerCertificate=True;
+```
 
-| Field | Value |
-|---|---|
-| Email | `admin@receiptscout.local` |
-| Password | `Admin123!` |
+**Seeded admin account:**
 
-Override these in production with the `Seed__AdminEmail` and `Seed__AdminPassword` environment variables. Users who register through `/api/Auth/register` receive the **User** role.
+| Email | Password |
+|-------|----------|
+| `admin@receiptscout.local` | `Admin123!` |
 
-### Tests
+(Override via `Seed:AdminEmail` / `Seed:AdminPassword` in configuration.)
+
+### Frontend
 
 ```bash
-dotnet test   # 13 passing
+cd frontend
+npm install
+npm run dev          # http://localhost:5173
 ```
+
+The front end reads the API base URL from `VITE_API_URL` (defaults to `https://localhost:7161`):
+
+```bash
+# frontend/.env.local
+VITE_API_URL=https://localhost:7161
+```
+
+---
+
+## Tests
+
+A separate xUnit project (`api/tests/ReceiptScout.Application.Tests`) covers the services and domain rules. Services are tested by mocking repository interfaces with **NSubstitute**; tests follow the Arrange-Act-Assert pattern.
+
+```bash
+dotnet test api/tests/ReceiptScout.Application.Tests/ReceiptScout.Application.Tests.csproj
+```
+
+Coverage includes happy paths, authorization checks, validation, and the expense-report state machine.
+
+---
+
+## CI / CD
+
+Two GitHub Actions workflows run on every push:
+
+- **`ci.yml`** — restores, builds the API, and runs all xUnit tests.
+- **`deploy-frontend.yml`** — builds the React app and deploys it to **GitHub Pages**.
+
+---
+
+## Project structure
+
+```
+.
+├── api/
+│   ├── src/
+│   │   ├── ReceiptScout.Api/            # Controllers, middleware, Program.cs
+│   │   ├── ReceiptScout.Application/    # Services, DTOs, interfaces, AI seam
+│   │   ├── ReceiptScout.Domain/         # Entities, enums, business rules
+│   │   └── ReceiptScout.Infrastructure/ # EF Core, repositories, Identity, seeding
+│   └── tests/
+│       └── ReceiptScout.Application.Tests/
+├── frontend/
+│   └── src/
+│       ├── app/                         # Router, dashboard
+│       ├── components/                  # Layout + shadcn/ui
+│       ├── features/                    # receipts, categories, expense-reports, auth
+│       └── lib/                         # api client, auth, types, formatting
+└── .github/workflows/                   # ci.yml, deploy-frontend.yml
+```
+
+---
+
+## Roadmap
+
+- [ ] Swap the stub AI for a real LLM (Gemini) via the existing seam
+- [ ] Deploy the API (e.g. Railway + PostgreSQL) for a fully working live demo
+- [ ] Receipt image upload (currently a URL field)
+- [ ] Owner column in the admin approval queue
+- [ ] Toasts and loading skeletons; mobile-responsive sidebar
+
+---
 
 ## License
 
-TBD
+MIT — see [`LICENSE`](LICENSE).
+
+## Author
+
+**Elvis Nilsson** — [GitHub](https://github.com/ElvisNilssonDev)

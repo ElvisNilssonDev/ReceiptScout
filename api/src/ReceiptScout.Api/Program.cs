@@ -104,7 +104,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(corsOrigins);
         policy.WithOrigins("http://localhost:5173",
-                           "https://elvisnilssondev.github.io") // New
+                           "https://elvisnilssondev.github.io")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

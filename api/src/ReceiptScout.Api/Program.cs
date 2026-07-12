@@ -102,7 +102,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
     {
-        policy.WithOrigins(corsOrigins)
+        policy.WithOrigins(corsOrigins);
         policy.WithOrigins("http://localhost:5173",
                            "https://elvisnilssondev.github.io") // New
               .AllowAnyHeader()

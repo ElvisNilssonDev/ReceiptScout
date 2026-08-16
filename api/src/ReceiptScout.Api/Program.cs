@@ -98,13 +98,16 @@ builder.Services.AddSwaggerGen(options =>
 
 var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
 
+var allowedOrigins = corsOrigins
+    .Concat(["http://localhost:5173", "https://elvisnilssondev.github.io"])
+    .Distinct()
+    .ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
     {
-        policy.WithOrigins(corsOrigins);
-        policy.WithOrigins("http://localhost:5173",
-                           "https://elvisnilssondev.github.io")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });

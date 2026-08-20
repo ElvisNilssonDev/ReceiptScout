@@ -31,7 +31,7 @@ public class Receipt
 
         Id = Guid.NewGuid();
         Merchant = merchant;
-        Date = date;
+        Date = DateTime.SpecifyKind(date, DateTimeKind.Utc);
         TotalAmount = totalAmount;
         VatAmount = vatAmount;
         UserId = userId;
@@ -80,7 +80,7 @@ public class Receipt
             throw new ArgumentException("VAT amount cannot be negative.", nameof(vatAmount));
 
         Merchant = merchant;
-        Date = date;
+        Date = DateTime.SpecifyKind(date, DateTimeKind.Utc);
         TotalAmount = totalAmount;
         VatAmount = vatAmount;
         Description = description;

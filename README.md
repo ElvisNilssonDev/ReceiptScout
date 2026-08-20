@@ -10,13 +10,13 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)
 ![EF Core](https://img.shields.io/badge/EF%20Core-10-512BD4)
-![SQL Server](https://img.shields.io/badge/SQL%20Server-Express-CC2927?logo=microsoftsqlserver&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Railway-4169E1?logo=postgresql&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-xUnit%20%C2%B7%20NSubstitute-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 **🔗 Live demo:** https://elvisnilssondev.github.io/ReceiptScout/
 
-> The deployed front end is hosted on GitHub Pages. The UI renders fully; sign-in and CRUD require a running API (the demo points at a local API by default — see [Running locally](#running-locally)).
+> The front end is hosted on GitHub Pages and talks to a live API + PostgreSQL database hosted on Railway. Register a new account or sign in to try the full flow — receipts, categories, and expense reports all persist for real.
 
 ---
 
@@ -24,7 +24,7 @@
 
 ReceiptScout lets a small business register receipts, group them into expense reports, and route those reports through an approval flow. Each receipt can be mapped to a **BAS account** (the Swedish standardized chart of accounts), and an **AI categorization seam** suggests the most likely account for a given receipt.
 
-It was built as a full-stack assignment: a layered .NET Web API with a separate xUnit test project, plus a React front end, in a single monorepo.
+It was built as a full-stack assignment: a layered .NET Web API with a separate xUnit test project, plus a React front end, in a single monorepo — deployed as two independent services (API on Railway, front end on GitHub Pages).
 
 The application UI is in **Swedish**; the codebase and this document are in English.
 
@@ -63,10 +63,11 @@ The application UI is in **Swedish**; the codebase and this document are in Engl
 
 | Area        | Technologies |
 |-------------|--------------|
-| **Backend** | C# 14 · .NET 10 · ASP.NET Core Web API · EF Core 10 · SQL Server Express · ASP.NET Core Identity · JWT Bearer · FluentValidation · Swashbuckle (Swagger) · Health Checks · Rate Limiting |
+| **Backend** | C# 14 · .NET 10 · ASP.NET Core Web API · EF Core 10 · PostgreSQL (Npgsql) · ASP.NET Core Identity · JWT Bearer · FluentValidation · Swashbuckle (Swagger) · Health Checks · Rate Limiting |
 | **Frontend**| React 19 · TypeScript · Vite · Tailwind CSS v4 · shadcn/ui · React Router (HashRouter) · lucide-react |
 | **Testing** | xUnit · NSubstitute · Shouldly |
-| **DevOps**  | GitHub Actions (CI build + test, CD deploy) · GitHub Pages |
+| **Hosting** | Railway (API + PostgreSQL) · GitHub Pages (front end) |
+| **DevOps**  | GitHub Actions (CI build + test, CD deploy to Pages) |
 
 ---
 
@@ -165,7 +166,7 @@ Interactive docs: run the API and open **`/swagger`**.
 ### Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 20+](https://nodejs.org/)
-- SQL Server Express (or adjust the connection string)
+- A local PostgreSQL instance (or point the connection string at any reachable Postgres — including the Railway database, for read-only poking around)
 
 ### Backend
 
@@ -176,10 +177,10 @@ dotnet run --project api/src/ReceiptScout.Api
 
 On startup the app applies EF Core migrations and **seeds** the database (roles, an admin user, and the 12 BAS categories) automatically. The API runs on `https://localhost:7161` with Swagger at `/swagger`.
 
-Connection string (in `api/src/ReceiptScout.Api/appsettings.json`):
+Connection string (in `api/src/ReceiptScout.Api/appsettings.Development.json`):
 
 ```
-Server=.\SQLEXPRESS;Database=ReceiptScout;Trusted_Connection=True;TrustServerCertificate=True;
+Host=localhost;Port=5432;Database=receiptscout;Username=postgres;Password=dev
 ```
 
 **Seeded admin account:**
@@ -219,12 +220,19 @@ Coverage includes happy paths, authorization checks, validation, and the expense
 
 ---
 
-## CI / CD
+## CI / CD & deployment
 
 Two GitHub Actions workflows run on every push:
 
 - **`ci.yml`** — restores, builds the API, and runs all xUnit tests.
-- **`deploy-frontend.yml`** — builds the React app and deploys it to **GitHub Pages**.
+- **`deploy-frontend.yml`** — builds the React app (with `VITE_API_URL` baked in at build time) and deploys it to **GitHub Pages**.
+
+The API and its PostgreSQL database run on **Railway**, which redeploys the API automatically on pushes to the connected branch (configured in the Railway dashboard, not a repo workflow file). Two things live only as environment variables on Railway, not in the repo:
+
+- `ConnectionStrings__DefaultConnection` — the Postgres connection string (built from the Railway Postgres service's private `PGHOST`/`PGPORT`/`PGDATABASE`/`PGUSER`/`PGPASSWORD` variables to avoid public-endpoint egress fees)
+- `Jwt__Key` — the JWT signing key (the app refuses to start without it)
+
+`Cors:Origins` in `appsettings.json` is additive with the hardcoded `localhost:5173` and GitHub Pages origins in `Program.cs`, so extra allowed origins can be added via config without a code change.
 
 ---
 
@@ -253,8 +261,8 @@ Two GitHub Actions workflows run on every push:
 
 ## Roadmap
 
+- [x] Deploy the API (Railway + PostgreSQL) for a fully working live demo
 - [ ] Swap the stub AI for a real LLM (Gemini) via the existing seam
-- [ ] Deploy the API (e.g. Railway + PostgreSQL) for a fully working live demo
 - [ ] Receipt image upload (currently a URL field)
 - [ ] Owner column in the admin approval queue
 - [ ] Toasts and loading skeletons; mobile-responsive sidebar

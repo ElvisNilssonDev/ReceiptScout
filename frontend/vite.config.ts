@@ -4,11 +4,11 @@ import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({
-  base: "/ReceiptScout/",
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    base: process.env.VITE_BASE ?? "/ReceiptScout/",
+    plugins: [react(), tailwindcss()],
+    resolve: {
+        alias: {
+            "@": path.resolve(__dirname, "./src"),
+        },
     },
-  },
 })

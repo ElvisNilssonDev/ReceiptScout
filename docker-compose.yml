@@ -10,16 +10,31 @@ services:
       - frontend-net
     restart: unless-stopped
 
-  api:
+  migrate:                                    # NYTT: engångsjobb för migreringar + seed
     image: ${DOCKERHUB_USER}/receiptscout-api:latest
     build: ./api
     environment:
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
       Jwt__Key: ${JWT_KEY}
       Seed__AdminPassword: ${ADMIN_PASSWORD}
+      Database__MigrateOnly: "true"
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - backend-net
+    restart: "no"
+
+  api:
+    image: ${DOCKERHUB_USER}/receiptscout-api:latest
+    build: ./api
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Jwt__Key: ${JWT_KEY}
+      Database__MigrateOnStartup: "false"     # NYTT: api-instanserna migrerar inte själva
+    depends_on:
+      migrate:                                # NYTT: vänta tills migrate är klar
+        condition: service_completed_successfully
     networks:
       - frontend-net
       - backend-net

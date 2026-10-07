@@ -115,13 +115,24 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// Database:MigrateOnly = true      → kör migreringar + seed och avsluta (migrate-containern)
+// Database:MigrateOnStartup = false → hoppa över migreringar (api-containrarna, så de inte krockar)
+var migrateOnly = app.Configuration.GetValue<bool>("Database:MigrateOnly");
+var migrateOnStartup = app.Configuration.GetValue("Database:MigrateOnStartup", true);
+
+if (migrateOnly || migrateOnStartup)
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
     var seeder = scope.ServiceProvider.GetRequiredService<ApplicationDbSeeder>();
     await seeder.SeedAsync();
+}
+
+if (migrateOnly)
+{
+    return; // migrate-containern är klar → avslutas med exit code 0
 }
 
 app.UseExceptionHandler();
